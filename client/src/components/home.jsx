@@ -54,7 +54,7 @@ function Home() {
                     This is a modern authentication system built with React, Material-UI, and Express
                 </Typography>
                 <Typography variant="body1" color="textSecondary" sx={{ fontSize: '16px' }}>
-                    Have a Grate Day
+                    Have a Grate Day charan
                 </Typography>
             </Paper>
         </Layout>

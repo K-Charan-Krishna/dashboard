@@ -140,7 +140,7 @@ export const refreshToken = async (req, res) => {
     try {
         // Get refresh token from cookie
         const oldRefreshToken = req.cookies.refreshToken;
-        console.log(oldRefreshToken, "oldrefresh")
+
 
         if (!oldRefreshToken) {
             return res.status(401).json({
@@ -154,7 +154,6 @@ export const refreshToken = async (req, res) => {
             process.env.REFRESH_SECRET
         );
 
-        console.log(payload, "payload")
 
         // Find token in database
         const storedToken = await RefreshToken.findOne({

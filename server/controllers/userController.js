@@ -2,7 +2,7 @@ import User from "../models/User.js";
 import s3 from "../config/s3.js";
 import fs from "fs/promises";
 import {
-    PutObjectCommand
+    PutObjectCommand, DeleteObjectCommand
 } from "@aws-sdk/client-s3";
 // import crypto from "crypto";
 import path from "path";
@@ -43,80 +43,102 @@ export const updateProfileImage = async (req, res) => {
         }
 
         // Logged in user
-        // const userId = req.user.id;
+        const userId = req.user.id;
 
         // Generate unique filename
-        // const fileName =
-        //     `profiles/${userId}-${crypto.randomUUID()}`;
+        const fileName =
+            `profiles/${userId}`;
 
-        // // Upload to S3
-        // const command = new PutObjectCommand({
+        console.log({
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+            accessKeyType: typeof process.env.AWS_ACCESS_KEY_ID,
+            secretLength: process.env.AWS_SECRET_ACCESS_KEY?.length,
+            secretType: typeof process.env.AWS_SECRET_ACCESS_KEY,
+            region: process.env.AWS_REGION,
+        });
 
-        //     Bucket: process.env.AWS_BUCKET_NAME,
+        // Upload to S3
+        const command = new PutObjectCommand({
 
-        //     Key: fileName,
+            Bucket: process.env.AWS_BUCKET_NAME,
 
-        //     Body: req.file.buffer,
+            Key: fileName,
 
-        //     ContentType: req.file.mimetype
+            Body: req.file.buffer,
 
-        // });
-
-        // await s3.send(command);
-
-        // // Build public URL
-        // const imageUrl =
-        //     `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
-
-        const userId = "charan"; // later: req.user.id
-
-        const uploadDir = path.join(
-            process.cwd(),
-            process.env.ROOT_DIR,
-            userId
-        );
-
-        await fs.mkdir(uploadDir, { recursive: true });
-
-        const extension = path.extname(req.file.originalname);
-
-        const fileName = `${crypto.randomUUID()}${extension}`;
-
-        const filePath = path.join(uploadDir, fileName);
-
-        await fs.writeFile(filePath, req.file.buffer);
-
-        const imagePath = `/var/profile/${userId}/${fileName}`;
-
-        // Update user
-        // const user = await User.findByIdAndUpdate(
-
-        //     userId,
-
-        //     {
-        //         profileImage: imagePath
-        //     },
-
-        //     {
-        //         new: true
-        //     }
-
-        // );
-
-        return res.status(200).json({
-
-            message: "Profile image uploaded",
-
-            profileImage: imagePath
-            // profileImage: user.profileImage
+            ContentType: req.file.mimetype
 
         });
 
-    } catch (error) {
+        await s3.send(command);
 
+        // Build public URL
+        const imageUrl = `profiles/${userId}-${req.file.originalname}`
+
+        // Update user
+        const user = await User.findByIdAndUpdate(
+
+            userId,
+
+            {
+                profileImage: imageUrl
+            },
+
+            {
+                new: true
+            }
+
+        );
+
+        return res.status(200).json({
+            message: "Profile image uploaded",
+            profileImage: user.profileImage
+        });
+
+    } catch (error) {
+        console.log(error)
         return res.status(500).json({
             message: error.message
         });
 
+    }
+};
+
+export const deleteProfileImage = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const user = await User.findById(userId);
+
+        if (!user || !user.profileImage) {
+            return res.status(404).json({
+                message: "Profile image not found"
+            });
+        }
+
+        const imageKey = user.profileImage
+
+        console.log("Deleting:", imageKey);
+
+        const command = new DeleteObjectCommand({
+            Bucket: process.env.AWS_BUCKET_NAME,
+            Key: imageKey,
+        });
+
+        await s3.send(command);
+
+        user.profileImage = null;
+        await user.save();
+
+        return res.status(200).json({
+            message: "Profile image deleted successfully",
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json({
+            message: error.message,
+        });
     }
 };

@@ -1,5 +1,5 @@
 import express from "express";
-import { getAllUsers, updateProfileImage } from "../controllers/userController.js";
+import { deleteProfileImage, getAllUsers, updateProfileImage } from "../controllers/userController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import upload from "../utils/upload.js";
 
@@ -13,9 +13,11 @@ router.get(
 );
 router.put(
     "/profile-image",
-    // authMiddleware,
+    authMiddleware,
     upload.single("image"),
     updateProfileImage
 );
+
+router.delete("/delete-profile", authMiddleware, deleteProfileImage)
 
 export default router;
